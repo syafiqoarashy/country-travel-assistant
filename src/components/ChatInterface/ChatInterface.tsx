@@ -239,7 +239,7 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
         isUser: false,
       }]);
     }
-  }, [selectedCountry?.code]);
+  }, [selectedCountry?.code, selectedCountry]);
 
   const handlePromptClick = (prompt: QuickPrompt) => {
     const promptText = selectedCountry 
