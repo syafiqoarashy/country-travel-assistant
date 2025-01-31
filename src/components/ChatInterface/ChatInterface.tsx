@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import type { Country } from '../../types/country';
 import { generateResponse } from '../../services/nim';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ChatContainer = styled.div<{ isMinimized: boolean }>`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: ${props => props.isMinimized ? '300px' : '450px'};
+  width: ${props => props.isMinimized ? '300px' : '300px'};
   height: ${props => props.isMinimized ? '60px' : '600px'};
   background: white;
   border-radius: 12px;
@@ -97,7 +99,7 @@ const ChatBody = styled.div`
 `;
 
 const Message = styled.div<{ isUser: boolean }>`
-  max-width: 80%;
+  max-width: 90%;
   padding: 10px 14px;
   border-radius: 14px;
   white-space: pre-wrap;
@@ -177,14 +179,7 @@ interface ChatInterfaceProps {
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
-  text: `👋 Hello! I'm your travel assistant. I can help you with:
-• Information about countries and their cultures
-• Travel recommendations and tips
-• Local customs and etiquette
-• Language assistance and translations
-• Local food and cuisine information
-• Transportation and getting around
-• Weather and best times to visit
+  text: `👋 Hello! I'm your travel assistant.
 
 Select a country from the list or use the quick prompt buttons above to get started!`,
   isUser: false,
@@ -325,7 +320,9 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
           <ChatBody ref={chatBodyRef}>
             {messages.map(message => (
               <Message key={message.id} isUser={message.isUser}>
-                {message.text}
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.text}
+                </ReactMarkdown>
               </Message>
             ))}
             {isTyping && (
