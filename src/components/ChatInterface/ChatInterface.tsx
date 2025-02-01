@@ -21,36 +21,39 @@ const ChatContainer = styled.div<{ isMinimized: boolean }>`
   transition: all 0.3s ease-in-out;
 `;
 
-const ChatHeader = styled.div`
-  padding: 16px;
+const ChatHeader = styled.div<{ isMinimized: boolean }>`
+  padding: 12px 16px;
   background: #007bff;
   color: white;
   font-weight: 500;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 14px;
+  height: ${props => props.isMinimized ? '60px' : '48px'};
 `;
 
 const HeaderControls = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-shrink: 0;
 `;
 
 const MinimizeButton = styled.button`
   background: none;
   border: none;
   color: white;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   transition: background-color 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.2);
@@ -61,6 +64,24 @@ const HeaderTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  max-width: calc(100% - 40px);
+  white-space: nowrap;
+  overflow: hidden;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  span:first-child {
+    flex-shrink: 0;
+  }
+
+  span:last-child {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const QuickPrompts = styled.div`
@@ -77,7 +98,7 @@ const PromptButton = styled.button`
   border: 1px solid #cce5ff;
   border-radius: 16px;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 11px;
   color: #0056b3;
   cursor: pointer;
   transition: all 0.2s;
@@ -103,6 +124,9 @@ const Message = styled.div<{ isUser: boolean }>`
   padding: 10px 14px;
   border-radius: 14px;
   white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.4;
+  
   ${({ isUser }) => isUser ? `
     background: #007bff;
     color: white;
@@ -114,11 +138,44 @@ const Message = styled.div<{ isUser: boolean }>`
     align-self: flex-start;
     border-bottom-left-radius: 4px;
   `}
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  /* Add proper list styling */
+  ul, ol {
+    margin: 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin: 2px 0;
+    padding-left: 4px;
+  }
+
+  /* Handle nested markdown content */
+  * {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+`;
+
+const ContextMessage = styled.div`
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  color: #666;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 `;
 
 const InputContainer = styled.div`
   padding: 16px;
-  border-top: 1px solid #eee;
   display: flex;
   gap: 8px;
 `;
@@ -129,7 +186,7 @@ const Input = styled.input`
   border: 1px solid #ddd;
   border-radius: 20px;
   outline: none;
-  font-size: 14px;
+  font-size: 13px;
 
   &:focus {
     border-color: #007bff;
@@ -144,6 +201,7 @@ const SendButton = styled.button`
   padding: 0 16px;
   cursor: pointer;
   transition: background 0.2s;
+  font-size: 13px;
 
   &:hover {
     background: #0056b3;
@@ -155,10 +213,55 @@ const SendButton = styled.button`
   }
 `;
 
+const LoadingSpinner = styled.div`
+  width: 12px;
+  height: 12px;
+  border: 2px solid #666;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: rotation 1s linear infinite;
+
+  @keyframes rotation {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
 const TypingIndicator = styled.div`
   padding: 10px;
   color: #666;
   font-style: italic;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+`;
+
+const ResetButton = styled.button`
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+  margin-right: 8px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
 `;
 
 interface Message {
@@ -219,27 +322,17 @@ const QUICK_PROMPTS: QuickPrompt[] = [
 ];
 
 const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
-    const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
-    const [inputText, setInputText] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
-    const [isMinimized, setIsMinimized] = useState(false);
-    const chatBodyRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
   }, [messages]);
-
-  useEffect(() => {
-    if (selectedCountry) {
-      setMessages(prev => [...prev, {
-        id: `country-select-${Date.now()}`,
-        text: `📍 Now focusing on ${selectedCountry.name}. How can I help you learn more about it?`,
-        isUser: false,
-      }]);
-    }
-  }, [selectedCountry?.code, selectedCountry]);
 
   const handlePromptClick = (prompt: QuickPrompt) => {
     const promptText = selectedCountry 
@@ -250,33 +343,28 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
-
+  
     const newMessage: Message = {
       id: Date.now().toString(),
       text: inputText,
       isUser: true,
     };
-
+  
     setMessages(prev => [...prev, newMessage]);
     setInputText('');
     setIsTyping(true);
-
+  
     try {
       const response = await generateResponse(
         inputText,
         selectedCountry ? `${selectedCountry.name} (${selectedCountry.code})` : undefined
       );
       
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      const aiResponse: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         text: response.text,
         isUser: false,
-      };
-      setMessages(prev => [...prev, aiResponse]);
+      }]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Sorry, I encountered an error. Please try again.";
       setMessages(prev => [...prev, {
@@ -291,19 +379,25 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
 
   return (
     <ChatContainer isMinimized={isMinimized}>
-      <ChatHeader>
+      <ChatHeader isMinimized={isMinimized}>
         <HeaderTitle>
           <span>Travel Assistant</span>
           {selectedCountry && <span>{selectedCountry.emoji} {selectedCountry.name}</span>}
         </HeaderTitle>
         <HeaderControls>
-          <MinimizeButton
-            onClick={() => setIsMinimized(!isMinimized)}
-            title={isMinimized ? 'Maximize' : 'Minimize'}
-          >
-            {isMinimized ? '□' : '−'}
-          </MinimizeButton>
-        </HeaderControls>
+          <ResetButton
+            onClick={() => setMessages([WELCOME_MESSAGE])}
+    title="Reset chat"
+  >
+    ↺
+  </ResetButton>
+  <MinimizeButton
+    onClick={() => setIsMinimized(!isMinimized)}
+    title={isMinimized ? 'Maximize' : 'Minimize'}
+  >
+    {isMinimized ? '□' : '−'}
+  </MinimizeButton>
+</HeaderControls>
       </ChatHeader>
       {!isMinimized && (
         <>
@@ -321,14 +415,23 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
             {messages.map(message => (
               <Message key={message.id} isUser={message.isUser}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {message.text}
+                  {message.text}
                 </ReactMarkdown>
               </Message>
             ))}
             {isTyping && (
-              <TypingIndicator>Assistant is typing...</TypingIndicator>
+              <TypingIndicator>
+                <LoadingSpinner />
+                  Assistant is typing...
+                </TypingIndicator>
             )}
           </ChatBody>
+          {selectedCountry && (
+            <ContextMessage>
+              <span>{selectedCountry.emoji}</span>
+              <span>Focusing on {selectedCountry.name}</span>
+            </ContextMessage>
+          )}
           <InputContainer>
             <Input
               type="text"

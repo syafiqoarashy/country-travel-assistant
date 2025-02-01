@@ -5,6 +5,12 @@ interface NimResponse {
   error?: string;
 }
 
+const getSystemPrompt = (countryContext?: string) => `You are a concise travel assistant that provides brief, focused information about countries. Keep responses short and to the point.
+${countryContext ? `The user is currently viewing information about ${countryContext}.` : ''}
+Focus on the most essential information, limit examples, and avoid unnecessary details.
+Aim for responses that are 3-4 sentences for simple queries and no more than 2-3 short bullet points for lists.
+When providing recommendations, limit to top 2-3 most important items.`;
+
 export const generateResponse = async (
   prompt: string,
   countryContext?: string
@@ -21,9 +27,7 @@ export const generateResponse = async (
         messages: [
           {
             role: 'system',
-            content: `You are a helpful travel assistant that provides information about countries. 
-            ${countryContext ? `The user is currently viewing information about ${countryContext}.` : ''}
-            Provide accurate and concise information about countries, travel recommendations, and help with translations when asked.`
+            content: getSystemPrompt(countryContext)
           },
           {
             role: 'user',
@@ -31,19 +35,18 @@ export const generateResponse = async (
           }
         ],
         temperature: 0.7,
-        max_tokens: 1024,
+        max_tokens: 512,
         top_p: 0.7
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API request failed: ${response.statusText}`);
+      throw new Error('API request failed: ' + response.statusText);
     }
 
     const data = await response.json();
     return { 
-      text: data.choices?.[0]?.message?.content || 'No response generated'
+      text: data.choices[0]?.message?.content || 'No response generated'
     };
   } catch (error) {
     console.error('Error calling NIM API:', error);
