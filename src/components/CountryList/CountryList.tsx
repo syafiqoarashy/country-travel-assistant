@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import CountryDetail from '../CountryDetail/CountryDetail';
 import styled from 'styled-components';
@@ -15,7 +15,6 @@ const Container = styled.div`
 const SearchBar = styled.input`
   width: 100%;
   padding: 12px;
-  margin-bottom: 20px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
@@ -32,7 +31,7 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  padding: 20px 0;
+  padding: 4px 0;
 `;
 
 const Card = styled.div`
@@ -90,6 +89,55 @@ const Value = styled.span`
   text-align: right;
 `;
 
+const Controls = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
+`;
+
+const Select = styled.select`
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  min-width: 150px;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  @media (max-width: 768px) {
+    flex: 1;
+    min-width: 0;
+  }
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100%;
+  }
+`;
+
 interface CountryCardProps {
   country: Country;
   onClick: (code: string) => void;
@@ -97,6 +145,14 @@ interface CountryCardProps {
 
 interface CountryListProps {
   onCountrySelect: (country: Country | undefined) => void;
+}
+
+type SortField = 'name' | 'capital' | 'population' | 'continent';
+type SortOrder = 'asc' | 'desc';
+
+interface SortConfig {
+  field: SortField;
+  order: SortOrder;
 }
 
 const CountryCard = ({ country, onClick }: CountryCardProps) => (
@@ -131,27 +187,55 @@ const CountryCard = ({ country, onClick }: CountryCardProps) => (
 const CountryList = ({ onCountrySelect }: CountryListProps) => {
   const [search, setSearch] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedContinent, setSelectedContinent] = useState<string>('');
+  const [sort, setSort] = useState<SortConfig>({ field: 'name', order: 'asc' });
   const { loading, error, data } = useQuery<CountryQueryResponse>(GET_COUNTRIES);
 
-  useEffect(() => {
-    if (data?.countries && selectedCountry) {
-      const country = data.countries.find(c => c.code === selectedCountry);
-      onCountrySelect(country);
-    }
-  }, [selectedCountry, data?.countries, onCountrySelect]);
+  const continents = useMemo(() => {
+    if (!data?.countries) return [];
+    return Array.from(new Set(data.countries.map(country => country.continent.name))).sort();
+  }, [data?.countries]);
 
-  const filteredCountries = data?.countries.filter(country =>
-    country.name.toLowerCase().includes(search.toLowerCase()) ||
-    country.continent.name.toLowerCase().includes(search.toLowerCase()) ||
-    (country.capital?.toLowerCase().includes(search.toLowerCase())) ||
-    (country.currency?.toLowerCase().includes(search.toLowerCase())) ||
-    country.languages.some(lang => 
-      lang.name.toLowerCase().includes(search.toLowerCase())
-    )
-  );
+  const filteredAndSortedCountries = useMemo(() => {
+    if (!data?.countries) return [];
+
+    const filtered = data.countries.filter(country => {
+      const matchesSearch = 
+        country.name.toLowerCase().includes(search.toLowerCase()) ||
+        country.continent.name.toLowerCase().includes(search.toLowerCase()) ||
+        (country.capital?.toLowerCase().includes(search.toLowerCase())) ||
+        (country.currency?.toLowerCase().includes(search.toLowerCase())) ||
+        country.languages.some(lang => 
+          lang.name.toLowerCase().includes(search.toLowerCase())
+        );
+
+      const matchesContinent = selectedContinent ? 
+        country.continent.name === selectedContinent : true;
+
+      return matchesSearch && matchesContinent;
+    });
+
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sort.field) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'capital':
+          comparison = (a.capital || '').localeCompare(b.capital || '');
+          break;
+        case 'continent':
+          comparison = a.continent.name.localeCompare(b.continent.name);
+          break;
+      }
+      return sort.order === 'asc' ? comparison : -comparison;
+    });
+  }, [data?.countries, search, selectedContinent, sort]);
 
   const handleCountryClick = (code: string) => {
+    const country = data?.countries.find(c => c.code === code);
     setSelectedCountry(code);
+    onCountrySelect(country);
   };
 
   const handleCloseDetail = () => {
@@ -183,8 +267,37 @@ const CountryList = ({ onCountrySelect }: CountryListProps) => {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
+      <Controls>
+        <FilterContainer>
+          <Select
+            value={selectedContinent}
+            onChange={(e) => setSelectedContinent(e.target.value)}
+          >
+            <option value="">All Continents</option>
+            {continents.map(continent => (
+              <option key={continent} value={continent}>
+                {continent}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={`${sort.field}-${sort.order}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
+              setSort({ field, order });
+            }}
+          >
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="capital-asc">Capital (A-Z)</option>
+            <option value="capital-desc">Capital (Z-A)</option>
+            <option value="continent-asc">Continent (A-Z)</option>
+            <option value="continent-desc">Continent (Z-A)</option>
+          </Select>
+        </FilterContainer>
+      </Controls>
       <Grid>
-        {filteredCountries?.map((country) => (
+        {filteredAndSortedCountries.map((country) => (
           <CountryCard
             key={country.code}
             country={country}

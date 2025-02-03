@@ -19,6 +19,14 @@ const ChatContainer = styled.div<{ isMinimized: boolean }>`
   overflow: hidden;
   z-index: 1000;
   transition: all 0.3s ease-in-out;
+
+  @media (max-width: 768px) {
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: ${props => props.isMinimized ? '60px' : '100%'};
+    border-radius: 0;
+  }
 `;
 
 const ChatHeader = styled.div<{ isMinimized: boolean }>`
@@ -91,6 +99,13 @@ const QuickPrompts = styled.div`
   padding: 8px 16px;
   border-bottom: 1px solid #eee;
   background: #f8f9fa;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 768px) {
+    padding: 8px;
+    gap: 6px;
+  }
 `;
 
 const PromptButton = styled.button`
@@ -103,10 +118,16 @@ const PromptButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  flex-shrink: 0;
 
   &:hover {
     background: #cce5ff;
     transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    padding: 4px 10px;
+    font-size: 10px;
   }
 `;
 
@@ -139,12 +160,17 @@ const Message = styled.div<{ isUser: boolean }>`
     border-bottom-left-radius: 4px;
   `}
 
-  p {
-    margin: 0;
-    font-size: 13px;
+  @media (max-width: 768px) {
+    max-width: 85%;
+    padding: 8px 12px;
+    font-size: 12px;
   }
 
-  /* Add proper list styling */
+  p {
+    margin: 0;
+    font-size: inherit;
+  }
+
   ul, ol {
     margin: 0;
     padding-left: 20px;
@@ -155,7 +181,6 @@ const Message = styled.div<{ isUser: boolean }>`
     padding-left: 4px;
   }
 
-  /* Handle nested markdown content */
   * {
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -178,6 +203,11 @@ const InputContainer = styled.div`
   padding: 16px;
   display: flex;
   gap: 8px;
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    padding-bottom: env(safe-area-inset-bottom, 12px); // For iOS devices with home indicator
+  }
 `;
 
 const Input = styled.input`
@@ -190,6 +220,10 @@ const Input = styled.input`
 
   &:focus {
     border-color: #007bff;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 16px; // Better for mobile typing
   }
 `;
 
@@ -264,6 +298,17 @@ const ResetButton = styled.button`
   }
 `;
 
+const SafeAreaSpacer = styled.div`
+  height: env(safe-area-inset-top, 0px);
+  background: #007bff;
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+  
+  display: none;
+`;
+
 interface Message {
   id: string;
   text: string;
@@ -329,6 +374,19 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (selectedCountry) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `country-select-${Date.now()}`,
+          text: `📍 Now focusing on ${selectedCountry.name}. How can I help you learn more about it?`,
+          isUser: false,
+        }
+      ]);
+    }
+  }, [selectedCountry?.code]);
+
+  useEffect(() => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
@@ -379,6 +437,7 @@ const ChatInterface = ({ selectedCountry }: ChatInterfaceProps) => {
 
   return (
     <ChatContainer isMinimized={isMinimized}>
+      <SafeAreaSpacer />
       <ChatHeader isMinimized={isMinimized}>
         <HeaderTitle>
           <span>Travel Assistant</span>

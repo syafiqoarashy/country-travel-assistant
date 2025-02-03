@@ -26,13 +26,17 @@ const Title = styled.h1`
 function App() {
   const [selectedCountry, setSelectedCountry] = useState<Country | undefined>();
 
+  const handleCountrySelect = (country: Country | undefined) => {
+    setSelectedCountry(country);
+  };
+
   return (
     <ApolloProvider client={client}>
       <AppContainer>
         <Header>
           <Title>Kuasar Country Explorer</Title>
         </Header>
-        <CountryList onCountrySelect={setSelectedCountry} />
+        <CountryList onCountrySelect={handleCountrySelect} />
         <ChatInterface selectedCountry={selectedCountry} />
       </AppContainer>
     </ApolloProvider>
