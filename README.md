@@ -1,4 +1,4 @@
-# Kuasar Country Explorer
+# Country Explorer
 
 A modern single-page application that combines country information display with AI-powered features. This application allows users to explore countries worldwide, get detailed information, and receive AI-assisted travel recommendations.
 

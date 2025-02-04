@@ -2,38 +2,10 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import CountryDetail from '../CountryDetail/CountryDetail';
 import { GET_COUNTRIES } from '../../graphql/queries';
-import type { CountryQueryResponse, Language } from '../../types/country';
-import { Card, CountryHeader, StyledFlag, Name, Detail, Label, Value, Container, SearchBar, Controls, FilterContainer, Select, Grid } from './styles';
-import { CountryCardProps, CountryListProps, SortConfig, SortField, SortOrder } from './types/country-list';
-
-const CountryCard = ({ country, onClick }: CountryCardProps) => (
-  <Card onClick={() => onClick(country.code)}>
-    <CountryHeader>
-      <StyledFlag emoji={country.emoji} code={country.code} size="medium" />
-      <Name>{country.name}</Name>
-    </CountryHeader>
-    {country.capital && (
-      <Detail>
-        <Label>Capital:</Label>
-        <Value>{country.capital}</Value>
-      </Detail>
-    )}
-    {country.currency && (
-      <Detail>
-        <Label>Currency:</Label>
-        <Value>{country.currency}</Value>
-      </Detail>
-    )}
-    <Detail>
-      <Label>Continent:</Label>
-      <Value>{country.continent.name}</Value>
-    </Detail>
-    <Detail>
-      <Label>Languages:</Label>
-      <Value>{country.languages.map((language: Language) => language.name).join(', ')}</Value>
-    </Detail>
-  </Card>
-);
+import type { CountryQueryResponse } from '../../types/country';
+import { Container, SearchBar, Controls, FilterContainer, Select, Grid } from './styles';
+import { CountryListProps, SortConfig, SortField, SortOrder } from './types/country-list';
+import { CountryCard } from './CountryCard';
 
 const CountryList = ({ onCountrySelect }: CountryListProps) => {
   const [search, setSearch] = useState('');

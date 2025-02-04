@@ -7,6 +7,11 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   background-color: #f5f5f5;
+  padding: 1rem;
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+  }
 `;
 
 const AuthCard = styled.div`
@@ -17,6 +22,19 @@ const AuthCard = styled.div`
   width: 100%;
   max-width: 400px;
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 0.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin: 0;
+  }
 `;
 
 export const AuthLayout = () => {
